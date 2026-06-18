@@ -254,6 +254,6 @@ with col3:
     )
 
 
-# Data Table 
+# DATA TABLE 
 st.subheader("Filtered Dataset")
 st.dataframe(filtered_df)
