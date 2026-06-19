@@ -59,8 +59,8 @@ channels = st.sidebar.multiselect(
 )
 devices = st.sidebar.multiselect(
     "Device Category",
-    df["Device Category"].unique(),
-    default=df["Device Category"].unique()
+    sorted(df["Device Category"].unique()),
+    default=sorted(df["Device Category"].unique())
 )
 filtered_df = df[
     (df["Marketing Channel"].isin(channels)) &
@@ -92,7 +92,10 @@ users = int(filtered_df["Users"].sum())
 revenue = filtered_df["Revenue"].sum()
 quotes = int(filtered_df["Insurance Quotes"].sum())
 policies = int(filtered_df["Policies Purchased"].sum())
-conversion = (policies / users)*100
+if users > 0:
+    conversion = (policies / users)*100
+else:
+    conversion = 0
 
 
 # KPI CARDS 
@@ -124,55 +127,90 @@ k5.metric(
 left,right = st.columns(2)
 with left:
     channel_users = (
-        filtered_df.groupby("Marketing Channel")
-        ["Users"].sum()
-        .reset_index()
-    )
-    fig = px.bar(
-        channel_users,
-        x="Marketing Channel",
-        y="Users",
-        title="Users by Marketing Channel",
-        text_auto=True
-    )
-    fig.update_layout(
-        template="plotly_white"
-    )
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
+    filtered_df.groupby("Marketing Channel")["Users"]
+    .sum()
+    .reset_index()
+)
+
+channel_users = channel_users.sort_values(
+    "Users",
+    ascending=False
+)
+
+fig = px.bar(
+    channel_users,
+    x="Marketing Channel",
+    y="Users",
+    title="Users by Marketing Channel",
+    text="Users"
+)
+
+fig.update_traces(
+    textposition="outside"
+)
+
+fig.update_layout(
+    template="plotly_white",
+    xaxis_title="Marketing Channel",
+    yaxis_title="Users"
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
 with right:
     revenue_channel = (
-        filtered_df.groupby("Marketing Channel")
-        ["Revenue"].sum()
-        .reset_index()
-    )
-    fig = px.bar(
-        revenue_channel,
-        y="Marketing Channel",
-        x="Revenue",
-        orientation="h",
-        title="Revenue by Marketing Channel",
-        text_auto=True
-    )
-    fig.update_layout(
-        template="plotly_white"
-    )
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
+    filtered_df.groupby("Marketing Channel")["Revenue"]
+    .sum()
+    .reset_index()
+)
 
+revenue_channel = revenue_channel.sort_values(
+    "Revenue",
+    ascending=True
+)
+
+
+fig = px.bar(
+    revenue_channel,
+    x="Revenue",
+    y="Marketing Channel",
+    orientation="h",
+    title="Revenue by Marketing Channel",
+    text="Revenue"
+)
+
+
+fig.update_traces(
+    texttemplate="$%{text:,.0f}",
+    textposition="outside"
+)
+
+
+fig.update_layout(
+    template="plotly_white",
+    xaxis_title="Revenue ($)",
+    yaxis_title="Marketing Channel"
+)
+
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
 
 # ROW 2
 left,right = st.columns(2)
+
 with left:
+
     device = (
-        filtered_df.groupby("Device Category")
-        ["Users"].sum()
+        filtered_df.groupby("Device Category")["Users"]
+        .sum()
         .reset_index()
     )
+
     fig = px.pie(
         device,
         names="Device Category",
@@ -180,30 +218,49 @@ with left:
         title="Device Category Distribution",
         hole=0.4
     )
+
+    fig.update_traces(
+        textinfo="percent+label"
+    )
+
     st.plotly_chart(
         fig,
         use_container_width=True
     )
+
+
 with right:
+
     scatter = (
         filtered_df.groupby("Marketing Channel")
         [["Users","Policies Purchased"]]
         .sum()
         .reset_index()
     )
+
     fig = px.scatter(
         scatter,
         x="Users",
         y="Policies Purchased",
         size="Policies Purchased",
         color="Marketing Channel",
-        title="User Engagement vs Purchases"
+        title="User Engagement vs Policy Purchases"
     )
+
+    fig.update_traces(
+        textposition="top center"
+    )
+
+    fig.update_layout(
+        template="plotly_white",
+        xaxis_title="Website Users",
+        yaxis_title="Policies Purchased"
+    )
+
     st.plotly_chart(
         fig,
         use_container_width=True
     )
-
 
 # FUNNEL 
 st.subheader("Insurance Conversion Funnel")
@@ -232,28 +289,71 @@ st.plotly_chart(
 )
 
 
-# INSIGHTS 
+# INSIGHTS
+
 st.subheader("Key Business Insights")
+
+
+top_users = (
+    filtered_df.groupby("Marketing Channel")["Users"]
+    .sum()
+    .idxmax()
+)
+
+top_revenue = (
+    filtered_df.groupby("Marketing Channel")["Revenue"]
+    .sum()
+    .idxmax()
+)
+
+
+conversion_channel = (
+    filtered_df.assign(
+        Conversion=
+        filtered_df["Policies Purchased"] /
+        filtered_df["Users"]
+    )
+    .groupby("Marketing Channel")["Conversion"]
+    .mean()
+    .idxmax()
+)
+
+
 col1,col2,col3 = st.columns(3)
+
+
 with col1:
     st.info(
-        "Marketing channels can be compared to identify "
-        "which sources generate the highest website traffic."
+        f"""
+        Traffic Insight
+
+        {top_users} generates the highest
+        number of website users.
+        """
     )
+
 
 with col2:
     st.success(
-        "Revenue analysis helps identify channels "
-        "that provide higher business value."
+        f"""
+        Revenue Insight
+
+        {top_revenue} provides the highest
+        revenue contribution.
+        """
     )
+
 
 with col3:
     st.warning(
-        "Conversion rate shows how effectively users "
-        "move from browsing to purchasing."
+        f"""
+        Conversion Insight
+
+        {conversion_channel} has the strongest
+        user-to-policy conversion.
+        """
     )
 
-
-# DATA TABLE 
+# Data Table 
 st.subheader("Filtered Dataset")
 st.dataframe(filtered_df)
