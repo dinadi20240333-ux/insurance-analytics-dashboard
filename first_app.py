@@ -37,7 +37,7 @@ st.write(
     "and insurance conversion insights."
 )
 
-# LOAD DATA 
+# Load the insurance dataset and prepare it for analysis
 df = pd.read_csv("insurance.data.aggregated.csv")
 
 # Clean column values
@@ -87,7 +87,7 @@ Customer behaviour • Revenue • Conversion insights
 unsafe_allow_html=True
 )
 
-# KPI CALCULATIONS 
+# Calculate key performance indicators for the dashboard
 users = int(filtered_df["Users"].sum())
 revenue = filtered_df["Revenue"].sum()
 quotes = int(filtered_df["Insurance Quotes"].sum())
@@ -123,7 +123,7 @@ k5.metric(
 )
 
 
-# ROW 1 CHARTS 
+# Create marketing channel analysis visualisations
 left,right = st.columns(2)
 with left:
     channel_users = (
